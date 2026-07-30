@@ -1,10 +1,13 @@
 import React, { useState } from "react";
 import { Swords } from "lucide-react";
-import AnalysisBoard from "./components/AnalysisBoard.jsx";
+import BoardPane from "./components/BoardPane.jsx";
+import AnalysisSidePanel from "./components/AnalysisSidePanel.jsx";
 import OpponentPrep from "./components/OpponentPrep.jsx";
+import { useAnalysisGame } from "./lib/useAnalysisGame.js";
 
 export default function ChessPrepApp() {
   const [mode, setMode] = useState("board");
+  const game = useAnalysisGame();
 
   return (
     <div className="app">
@@ -76,8 +79,9 @@ export default function ChessPrepApp() {
         .move-hint.capture { width: 92%; height: 92%; background: transparent; border-radius: 50%; box-shadow: inset 0 0 0 4px rgba(20,23,28,0.4); }
 
         .analysis-board-layout { display:flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
-        .analysis-board-main { flex: 1 1 420px; max-width: 520px; }
+        .analysis-board-main, .board-pane { flex: 1 1 420px; max-width: 520px; }
         .analysis-board-side { flex: 1 1 240px; min-width: 220px; }
+        .side-slot { flex: 1 1 320px; min-width: 280px; }
         .analysis-board-eval-row { display:flex; gap: 10px; align-items: stretch; }
         .eval-bar-wrap { width: 22px; border-radius: 4px; overflow: hidden; background: #1B1F26; border: 1px solid #2A313C; position: relative; display:flex; flex-direction: column; justify-content: flex-end; flex-shrink: 0; }
         .eval-bar-wrap.eval-bar-flipped { justify-content: flex-start; }
@@ -225,8 +229,11 @@ export default function ChessPrepApp() {
       </div>
 
       <div className="main">
-        <div style={{ display: mode === "board" ? "block" : "none" }}><AnalysisBoard /></div>
-        <div style={{ display: mode === "prep" ? "block" : "none" }}><OpponentPrep /></div>
+        <div className="analysis-board-layout">
+          <BoardPane game={game} />
+          <div className="side-slot" style={{ display: mode === "board" ? "block" : "none" }}><AnalysisSidePanel game={game} /></div>
+          <div className="side-slot" style={{ display: mode === "prep" ? "block" : "none" }}><OpponentPrep /></div>
+        </div>
       </div>
     </div>
   );
