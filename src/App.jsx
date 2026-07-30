@@ -5,10 +5,11 @@ import {
 } from "recharts";
 import {
   Save, Trash2, Upload, RefreshCw, ChevronRight, ChevronDown,
-  Info, Swords, AlertTriangle, FolderOpen, X, ClipboardPaste, Search
+  Info, Swords, AlertTriangle, FolderOpen, X, ClipboardPaste, Search, Pencil
 } from "lucide-react";
 import { storage } from "./storage.js";
 import { ECO_NAMES } from "./data/ecoNames.js";
+import GameViewer from "./components/GameViewer.jsx";
 
 /* ============================== CONSTANTS ============================== */
 
@@ -288,6 +289,9 @@ export default function ChessPrepApp() {
   const [parseWarning, setParseWarning] = useState("");
   const [importStatus, setImportStatus] = useState("");
   const fileInputRef = useRef(null);
+  const [viewingGame, setViewingGame] = useState(null);
+  const [formCollapsed, setFormCollapsed] = useState(false);
+  const [performanceView, setPerformanceView] = useState("recency");
 
   const [savedList, setSavedList] = useState([]);
   const [storageStatus, setStorageStatus] = useState("");
@@ -404,6 +408,7 @@ export default function ChessPrepApp() {
     );
     setGames(classified);
     setActiveTab("overview");
+    if (classified.length > 0) setFormCollapsed(true);
   }
 
   function handleParseClick() { doParse(rawPgn, profile.name, myName); }
@@ -525,15 +530,24 @@ export default function ChessPrepApp() {
       <style>{`
         .app { min-height: 100vh; background: #14171C; color: #E8E3D8; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; display: flex; }
         .app * { box-sizing: border-box; }
-        .serif { font-family: Georgia, "Palatino Linotype", "Iowan Old Style", serif; }
         .mono { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace; }
 
-        .sidebar { width: 340px; min-width: 280px; background: #1C2129; border-right: 1px solid #2A313C; padding: 20px; overflow-y: auto; height: 100vh; position: sticky; top: 0; }
-        .main { flex: 1; padding: 24px 28px; overflow-y: auto; height: 100vh; }
+        .sidebar { width: 340px; min-width: 280px; background: #1C2129; border-right: 1px solid #2A313C; padding: 22px; overflow-y: auto; height: 100vh; position: sticky; top: 0; }
+        .main { flex: 1; padding: 28px 32px; overflow-y: auto; height: 100vh; }
 
         .brand { display:flex; align-items:center; gap:8px; margin-bottom: 4px; }
-        .brand h1 { font-size: 18px; margin: 0; letter-spacing: 0.3px; }
-        .brand-sub { color: #8B93A1; font-size: 12px; margin-bottom: 18px; }
+        .brand h1 { font-size: 17px; font-weight: 700; margin: 0; letter-spacing: 0.1px; }
+        .brand-sub { color: #8B93A1; font-size: 12px; margin-bottom: 20px; }
+
+        .back-link { width: auto; background: transparent; border: none; color: #8B93A1; padding: 0; margin: 0 0 16px 0; font-size: 12.5px; justify-content: flex-start; }
+        .back-link:hover { color: #C9A227; border-color: transparent; }
+
+        .compact-profile { background: #14171C; border: 1px solid #2A313C; border-radius: 8px; padding: 14px 16px; margin-top: 4px; }
+        .compact-profile-name { font-size: 16px; font-weight: 700; }
+        .compact-profile-meta { color: #8B93A1; font-size: 12px; margin-top: 3px; }
+        .compact-profile-color { font-size: 12.5px; color: #8B93A1; margin-top: 8px; }
+        .compact-profile-color strong { color: #E8E3D8; }
+        .compact-profile .btn-row .btn { margin-top: 12px; }
 
         .field-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: #8B93A1; margin-bottom: 4px; display:block; margin-top: 12px; }
         .field-row { display:flex; gap: 8px; }
@@ -548,8 +562,9 @@ export default function ChessPrepApp() {
         .color-toggle button { flex:1; padding: 8px; background: #14171C; color: #8B93A1; border: none; cursor: pointer; font-size: 13px; }
         .color-toggle button.active { background: #C9A227; color: #14171C; font-weight: 600; }
 
-        .btn { display:flex; align-items:center; justify-content:center; gap: 6px; padding: 9px 12px; border-radius: 6px; border: 1px solid #2A313C; background: #232935; color: #E8E3D8; cursor: pointer; font-size: 13px; width: 100%; margin-top: 10px; }
+        .btn { display:flex; align-items:center; justify-content:center; gap: 6px; padding: 9px 12px; border-radius: 6px; border: 1px solid #2A313C; background: #232935; color: #E8E3D8; cursor: pointer; font-size: 13px; width: 100%; margin-top: 10px; transition: border-color 0.15s ease, background 0.15s ease, transform 0.1s ease; }
         .btn:hover { border-color: #C9A227; }
+        .btn:active { transform: scale(0.98); }
         .btn.primary { background: #C9A227; color: #14171C; border-color: #C9A227; font-weight: 600; }
         .btn.primary:hover { background: #dbb32e; }
         .btn.ghost { background: transparent; }
@@ -570,19 +585,34 @@ export default function ChessPrepApp() {
         .status-line { font-size: 11.5px; color: #8B93A1; margin-top: 6px; min-height: 14px; }
         .warning-box { display:flex; gap:8px; align-items:flex-start; background: #2A2418; border: 1px solid #6b5a1f; color: #E8C778; padding: 10px 12px; border-radius: 6px; font-size: 12.5px; margin-bottom: 16px; }
 
-        .tabs { display:flex; gap: 4px; border-bottom: 1px solid #2A313C; margin-bottom: 20px; flex-wrap: wrap; }
-        .tab { padding: 9px 14px; font-size: 13px; color: #8B93A1; cursor: pointer; border-bottom: 2px solid transparent; }
+        .tabs { display:flex; gap: 4px; border-bottom: 1px solid #2A313C; margin-bottom: 24px; flex-wrap: wrap; }
+        .tab { padding: 10px 16px; font-size: 13.5px; font-weight: 500; color: #8B93A1; cursor: pointer; border-bottom: 2px solid transparent; transition: color 0.15s ease, border-color 0.15s ease; }
+        .tab:hover { color: #C9C3B4; }
         .tab.active { color: #E8E3D8; border-bottom-color: #C9A227; }
 
-        .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 22px; }
-        .stat-card { background: #1C2129; border: 1px solid #2A313C; border-radius: 8px; padding: 14px 16px; }
+        .hero-stat { background: #1C2129; border-radius: 10px; padding: 22px 24px; margin-bottom: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.16); }
+        .hero-stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: #8B93A1; margin-bottom: 10px; }
+        .hero-stat-row { display:flex; align-items: baseline; gap: 20px; flex-wrap: wrap; }
+        .hero-stat-value { font-size: 42px; font-weight: 700; line-height: 1; color: #E8E3D8; }
+        .hero-stat-details { display:flex; flex-direction: column; gap: 6px; }
+        .hero-stat-wdl { font-size: 14px; }
+        .hero-stat-wdl .muted { color: #8B93A1; font-size: 12.5px; }
+        .hero-stat-empty { color: #8B93A1; font-size: 13.5px; padding-top: 2px; }
+
+        .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .grid-secondary { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+        .stat-card { background: #1C2129; border-radius: 8px; padding: 14px 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.16); }
         .stat-card .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #8B93A1; margin-bottom: 6px; }
-        .stat-card .value { font-size: 22px; font-family: Georgia, serif; }
+        .stat-card .value { font-size: 20px; font-weight: 700; }
         .stat-card .sub { font-size: 12px; color: #8B93A1; margin-top: 4px; }
 
-        .panel { background: #1C2129; border: 1px solid #2A313C; border-radius: 8px; padding: 18px 20px; margin-bottom: 20px; }
-        .panel h2 { font-size: 15px; margin: 0 0 4px 0; font-family: Georgia, serif; }
+        .panel { background: #1C2129; border-radius: 10px; padding: 20px 22px; margin-bottom: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.16); }
+        .panel h2 { font-size: 15px; font-weight: 600; margin: 0 0 4px 0; }
         .panel .desc { color: #8B93A1; font-size: 12.5px; margin-bottom: 14px; }
+
+        .segmented { display:inline-flex; background: #14171C; border: 1px solid #2A313C; border-radius: 7px; padding: 3px; margin-bottom: 16px; }
+        .segmented-btn { background: transparent; border: none; color: #8B93A1; padding: 6px 14px; border-radius: 5px; font-size: 12.5px; cursor: pointer; transition: background 0.15s ease, color 0.15s ease; }
+        .segmented-btn.active { background: #C9A227; color: #14171C; font-weight: 600; }
 
         .h2h-banner { background: #2A1E1E; border: 1px solid #6b3030; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; display:flex; align-items:center; gap: 10px; }
         .h2h-banner .n { color: #E89494; font-weight:600; }
@@ -591,6 +621,8 @@ export default function ChessPrepApp() {
         th { text-align:left; color: #8B93A1; font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; padding: 6px 8px; border-bottom: 1px solid #2A313C; }
         td { padding: 7px 8px; border-bottom: 1px solid #232935; vertical-align: middle; }
         tr.h2h-row { background: rgba(178,85,80,0.08); }
+        tr.row-clickable { cursor: pointer; transition: background 0.12s ease; }
+        tr.row-clickable:hover { background: #232935; }
 
         .score-pill { display:flex; align-items:center; height: 16px; width: 90px; border-radius: 3px; overflow:hidden; background:#232935; position: relative; }
         .sp-seg { height: 100%; }
@@ -622,9 +654,47 @@ export default function ChessPrepApp() {
         .info-line { display:flex; align-items:flex-start; gap: 8px; color: #8B93A1; font-size: 12px; margin-top: 10px; }
 
         .empty-state { text-align:center; padding: 60px 20px; color: #8B93A1; }
-        .empty-state h2 { color: #E8E3D8; font-family: Georgia, serif; font-size: 20px; margin-bottom: 8px; }
+        .empty-state h2 { color: #E8E3D8; font-weight: 700; font-size: 20px; margin-bottom: 8px; }
 
         select.recency-select { width: auto; display:inline-block; margin-left: 8px; }
+
+        .board-modal-backdrop { position: fixed; inset: 0; background: rgba(10,12,16,0.72); display:flex; align-items:center; justify-content:center; z-index: 100; padding: 24px; animation: fade-in 0.12s ease; }
+        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+        .board-modal { position: relative; background: #1C2129; border: 1px solid #2A313C; border-radius: 10px; box-shadow: 0 12px 40px rgba(0,0,0,0.5); max-width: 900px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 20px 22px 24px; }
+        .board-modal-close { position:absolute; top: 14px; right: 14px; background: transparent; border: none; color: #8B93A1; cursor: pointer; padding: 4px; border-radius: 4px; }
+        .board-modal-close:hover { color: #E8E3D8; background: #232935; }
+        .board-modal-header { margin-bottom: 16px; padding-right: 28px; }
+        .board-modal-title { font-weight: 700; font-size: 17px; }
+        .board-modal-title .vs { color: #8B93A1; font-size: 13px; margin: 0 4px; }
+        .board-modal-sub { color: #8B93A1; font-size: 12.5px; margin-top: 4px; }
+        .board-modal-body { display:flex; gap: 24px; flex-wrap: wrap; }
+        .board-modal-board { flex: 1 1 380px; max-width: 460px; }
+        .board-modal-moves { flex: 1 1 220px; min-width: 200px; max-height: 460px; overflow-y: auto; border: 1px solid #2A313C; border-radius: 8px; padding: 8px 10px; background: #14171C; }
+
+        .chess-board { width: 100%; aspect-ratio: 1 / 1; border-radius: 4px; overflow: hidden; border: 2px solid #2A313C; box-shadow: 0 4px 16px rgba(0,0,0,0.3); }
+        .chess-board-grid { width: 100%; height: 100%; display: flex; flex-direction: column; }
+        .chess-board-row { flex: 1; display: flex; }
+        .chess-square { position: relative; flex: 1; display:flex; align-items:center; justify-content:center; }
+        .chess-square.light { background: #D9CDB4; }
+        .chess-square.dark { background: #7C6A50; }
+        .chess-square.last-move.light { background: #E8D68A; }
+        .chess-square.last-move.dark { background: #C9AA4E; }
+        .chess-piece { font-size: min(6.5vw, 42px); line-height: 1; user-select: none; color: #1B1F26; }
+        .chess-piece.piece-w { color: #F6F1E4; -webkit-text-stroke: 1px #1B1F26; text-shadow: 0 1px 1px rgba(0,0,0,0.3); }
+        .chess-piece.piece-b { color: #1B1F26; text-shadow: 0 1px 1px rgba(0,0,0,0.25); }
+        .chess-rank-label { position:absolute; top: 2px; left: 3px; font-size: 9px; color: rgba(0,0,0,0.4); font-weight: 600; }
+        .chess-file-label { position:absolute; bottom: 1px; right: 3px; font-size: 9px; color: rgba(0,0,0,0.4); font-weight: 600; }
+
+        .board-controls { display:flex; align-items:center; justify-content:center; gap: 6px; margin-top: 12px; }
+        .board-controls .btn-icon { width: auto; }
+        .board-ply-indicator { font-size: 11.5px; color: #8B93A1; min-width: 52px; text-align:center; font-family: "JetBrains Mono", monospace; }
+        .board-warning { display:flex; align-items:center; gap: 6px; color: #E8C778; font-size: 11.5px; margin-top: 10px; background: #2A2418; border: 1px solid #6b5a1f; border-radius: 6px; padding: 7px 9px; }
+
+        .move-list-row { display:flex; align-items:center; gap: 8px; padding: 3px 2px; font-size: 12.5px; font-family: "JetBrains Mono", monospace; }
+        .move-list-num { color: #8B93A1; width: 26px; flex-shrink: 0; }
+        .move-list-san { flex: 1; padding: 2px 6px; border-radius: 4px; cursor: pointer; }
+        .move-list-san:hover { background: #232935; }
+        .move-list-san.active { background: #C9A227; color: #14171C; font-weight: 600; }
 
         @media (max-width: 820px) {
           .app { flex-direction: column; }
@@ -637,9 +707,45 @@ export default function ChessPrepApp() {
       <div className="sidebar">
         <div className="brand">
           <Swords size={20} color="#C9A227" />
-          <h1 className="serif">Opponent Scouting</h1>
+          <h1>Opponent Scouting</h1>
         </div>
         <div className="brand-sub">Tournament prep dossier</div>
+
+        {formCollapsed && games !== null ? (
+          <div className="compact-profile">
+            <div className="compact-profile-name">{profile.name || "Unnamed opponent"}</div>
+            {(profile.title || profile.ratingStd || profile.country) && (
+              <div className="compact-profile-meta">
+                {[profile.title, profile.ratingStd, profile.country].filter(Boolean).join(" · ")}
+              </div>
+            )}
+            <div className="compact-profile-color">You play <strong>{myColor === "white" ? "White" : "Black"}</strong></div>
+
+            <div className="btn-row">
+              <button className="btn ghost" onClick={() => setFormCollapsed(false)}><Pencil size={14} /> Edit</button>
+              <button className="btn ghost" onClick={handleSave}><Save size={14} /> Save</button>
+            </div>
+            <div className="status-line">{storageStatus}</div>
+
+            {savedList.length > 0 && (
+              <>
+                <label className="field-label"><FolderOpen size={12} style={{ verticalAlign: "-2px" }} /> Saved opponents</label>
+                <div className="saved-list">
+                  {savedList.map((item) => (
+                    <div className="saved-item" key={item.key} onClick={() => handleLoad(item.key)}>
+                      <span>{item.name}</span>
+                      <button onClick={(e) => { e.stopPropagation(); handleDelete(item.key); }}><X size={13} /></button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        ) : (
+        <>
+        {games !== null && (
+          <button className="btn ghost back-link" onClick={() => setFormCollapsed(true)}>‹ Back to summary</button>
+        )}
 
         <label className="field-label">Opponent name (as in PGN)</label>
         <input type="text" value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} placeholder="Lastname, Firstname" />
@@ -705,7 +811,7 @@ export default function ChessPrepApp() {
 
         <div className="btn-row">
           <button className="btn ghost" onClick={handleSave}><Save size={14} /> Save profile</button>
-          <button className="btn ghost" onClick={() => { setProfile({ name: "", country: "", age: "", fideId: "", title: "", ratingStd: "", ratingRapid: "", ratingBlitz: "" }); setMyName(""); setRawPgn(""); setGames(null); setParseWarning(""); setFideStatus(""); setImportStatus(""); }}>
+          <button className="btn ghost" onClick={() => { setProfile({ name: "", country: "", age: "", fideId: "", title: "", ratingStd: "", ratingRapid: "", ratingBlitz: "" }); setMyName(""); setRawPgn(""); setGames(null); setParseWarning(""); setFideStatus(""); setImportStatus(""); setFormCollapsed(false); }}>
             <RefreshCw size={14} /> Clear
           </button>
         </div>
@@ -724,13 +830,15 @@ export default function ChessPrepApp() {
             </div>
           </>
         )}
+        </>
+        )}
       </div>
 
       {/* ---------------- MAIN ---------------- */}
       <div className="main">
         {games === null ? (
           <div className="empty-state">
-            <h2 className="serif">No games analyzed yet</h2>
+            <h2>No games analyzed yet</h2>
             <p>Fill in the opponent's name, paste their PGNs on the left, and hit "Parse &amp; analyze".</p>
           </div>
         ) : (
@@ -747,33 +855,38 @@ export default function ChessPrepApp() {
             )}
 
             <div className="tabs">
-              {[["overview", "Overview"], ["tree", "Opening Tree"], ["trends", "Trends"], ["bands", "Rating Bands"], ["games", "Games"]].map(([key, label]) => (
+              {[["overview", "Overview"], ["tree", "Opening Tree"], ["performance", "Performance"], ["games", "Games"]].map(([key, label]) => (
                 <div key={key} className={`tab ${activeTab === key ? "active" : ""}`} onClick={() => setActiveTab(key)}>{label}</div>
               ))}
             </div>
 
             {activeTab === "overview" && (
               <>
-                <div className="grid">
+                <div className="hero-stat">
+                  <div className="hero-stat-label">Opponent's score ({oppLabel})</div>
+                  {overallScore ? (
+                    <div className="hero-stat-row">
+                      <div className="hero-stat-value">{(((overallScore.w + overallScore.d * 0.5) / overallScore.n) * 100).toFixed(0)}%</div>
+                      <div className="hero-stat-details">
+                        <div className="hero-stat-wdl">{overallScore.w}–{overallScore.d}–{overallScore.l} <span className="muted">in {overallScore.n} games</span></div>
+                        <ConfBadge n={relevant.length} />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="hero-stat-empty">No results found for {oppLabel}.</div>
+                  )}
+                </div>
+
+                <div className="grid grid-secondary">
                   <div className="stat-card">
                     <div className="label">Games analyzed</div>
                     <div className="value">{relevant.length}</div>
-                    <div className="sub">of {games.length} pasted ({oppLabel})</div>
-                  </div>
-                  <div className="stat-card">
-                    <div className="label">Opponent's score</div>
-                    <div className="value">{overallScore ? `${overallScore.w}–${overallScore.d}–${overallScore.l}` : "—"}</div>
-                    <div className="sub">{overallScore ? `${(((overallScore.w + overallScore.d * 0.5) / overallScore.n) * 100).toFixed(0)}% score` : "no results found"}</div>
+                    <div className="sub">of {games.length} pasted</div>
                   </div>
                   <div className="stat-card">
                     <div className="label">Most common line</div>
                     <div className="value" style={{ fontSize: 15 }}>{openingGroups[0]?.name || "—"}</div>
                     <div className="sub">{openingGroups[0] ? `${openingGroups[0].freqPct.toFixed(0)}% of games` : ""}</div>
-                  </div>
-                  <div className="stat-card">
-                    <div className="label">Sample confidence</div>
-                    <div className="value">{confidenceLabel(relevant.length).label}</div>
-                    <div className="sub">based on {relevant.length} relevant games</div>
                   </div>
                 </div>
 
@@ -832,57 +945,64 @@ export default function ChessPrepApp() {
               </>
             )}
 
-            {activeTab === "trends" && (
+            {activeTab === "performance" && (
               <div className="panel">
-                <h2>Recency trend
-                  <select className="recency-select" value={recencyMonths} onChange={(e) => setRecencyMonths(Number(e.target.value))}>
-                    <option value={6}>last 6 months</option>
-                    <option value={12}>last 12 months</option>
-                  </select>
-                </h2>
-                <div className="desc">Comparing opening frequency in the recent window ({recencyData.recentCount} games) vs older games ({recencyData.olderCount} games). {recencyData.undated > 0 ? `${recencyData.undated} game(s) have no usable date and are excluded from this view.` : ""}</div>
-                {recencyData.combined.length === 0 ? <div className="desc">Not enough dated games to compare.</div> : (
-                  <ResponsiveContainer width="100%" height={320}>
-                    <BarChart data={recencyData.combined} layout="vertical" margin={{ left: 20 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#2A313C" />
-                      <XAxis type="number" stroke="#8B93A1" unit="%" />
-                      <YAxis type="category" dataKey="name" stroke="#8B93A1" width={150} tick={{ fontSize: 11 }} />
-                      <Tooltip contentStyle={{ background: "#1C2129", border: "1px solid #2A313C" }} formatter={(v) => `${v.toFixed(0)}%`} />
-                      <Legend />
-                      <Bar dataKey="older" name="Older" fill="#8B93A1" />
-                      <Bar dataKey="recent" name={`Last ${recencyMonths}mo`} fill="#C9A227" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
-            )}
+                <div className="segmented">
+                  <button className={`segmented-btn ${performanceView === "recency" ? "active" : ""}`} onClick={() => setPerformanceView("recency")}>Recency trend</button>
+                  <button className={`segmented-btn ${performanceView === "bands" ? "active" : ""}`} onClick={() => setPerformanceView("bands")}>Rating bands</button>
+                </div>
 
-            {activeTab === "bands" && (
-              <div className="panel">
-                <h2>Performance vs rating bands</h2>
-                <div className="desc">Opponent's score % against players in each rating band ({oppLabel}). Use this to see whether he overperforms against weaker players or holds up against stronger ones.</div>
-                {ratingBandStats.length === 0 ? <div className="desc">No games to show.</div> : (
+                {performanceView === "recency" ? (
                   <>
-                    <ResponsiveContainer width="100%" height={280}>
-                      <BarChart data={ratingBandStats}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#2A313C" />
-                        <XAxis dataKey="band" stroke="#8B93A1" tick={{ fontSize: 11 }} />
-                        <YAxis stroke="#8B93A1" unit="%" />
-                        <Tooltip contentStyle={{ background: "#1C2129", border: "1px solid #2A313C" }} formatter={(v) => `${v.toFixed(0)}%`} />
-                        <Bar dataKey="scorePct" name="Score %" fill="#C9A227" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                    <table style={{ marginTop: 14 }}>
-                      <thead><tr><th>Band</th><th>Games</th><th>W–D–L</th><th>Score</th><th>Confidence</th></tr></thead>
-                      <tbody>
-                        {ratingBandStats.map((b) => (
-                          <tr key={b.band}>
-                            <td>{b.band}</td><td>{b.n}</td><td>{b.w}–{b.d}–{b.l}</td>
-                            <td>{b.scorePct.toFixed(0)}%</td><td><ConfBadge n={b.n} /></td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                    <h2>Recency trend
+                      <select className="recency-select" value={recencyMonths} onChange={(e) => setRecencyMonths(Number(e.target.value))}>
+                        <option value={6}>last 6 months</option>
+                        <option value={12}>last 12 months</option>
+                      </select>
+                    </h2>
+                    <div className="desc">Comparing opening frequency in the recent window ({recencyData.recentCount} games) vs older games ({recencyData.olderCount} games). {recencyData.undated > 0 ? `${recencyData.undated} game(s) have no usable date and are excluded from this view.` : ""}</div>
+                    {recencyData.combined.length === 0 ? <div className="desc">Not enough dated games to compare.</div> : (
+                      <ResponsiveContainer width="100%" height={320}>
+                        <BarChart data={recencyData.combined} layout="vertical" margin={{ left: 20 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#2A313C" />
+                          <XAxis type="number" stroke="#8B93A1" unit="%" />
+                          <YAxis type="category" dataKey="name" stroke="#8B93A1" width={150} tick={{ fontSize: 11 }} />
+                          <Tooltip contentStyle={{ background: "#1C2129", border: "1px solid #2A313C" }} formatter={(v) => `${v.toFixed(0)}%`} />
+                          <Legend />
+                          <Bar dataKey="older" name="Older" fill="#8B93A1" />
+                          <Bar dataKey="recent" name={`Last ${recencyMonths}mo`} fill="#C9A227" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <h2>Performance vs rating bands</h2>
+                    <div className="desc">Opponent's score % against players in each rating band ({oppLabel}). Use this to see whether he overperforms against weaker players or holds up against stronger ones.</div>
+                    {ratingBandStats.length === 0 ? <div className="desc">No games to show.</div> : (
+                      <>
+                        <ResponsiveContainer width="100%" height={280}>
+                          <BarChart data={ratingBandStats}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#2A313C" />
+                            <XAxis dataKey="band" stroke="#8B93A1" tick={{ fontSize: 11 }} />
+                            <YAxis stroke="#8B93A1" unit="%" />
+                            <Tooltip contentStyle={{ background: "#1C2129", border: "1px solid #2A313C" }} formatter={(v) => `${v.toFixed(0)}%`} />
+                            <Bar dataKey="scorePct" name="Score %" fill="#C9A227" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                        <table style={{ marginTop: 14 }}>
+                          <thead><tr><th>Band</th><th>Games</th><th>W–D–L</th><th>Score</th><th>Confidence</th></tr></thead>
+                          <tbody>
+                            {ratingBandStats.map((b) => (
+                              <tr key={b.band}>
+                                <td>{b.band}</td><td>{b.n}</td><td>{b.w}–{b.d}–{b.l}</td>
+                                <td>{b.scorePct.toFixed(0)}%</td><td><ConfBadge n={b.n} /></td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </>
+                    )}
                   </>
                 )}
               </div>
@@ -892,13 +1012,14 @@ export default function ChessPrepApp() {
               <>
                 <div className="panel">
                   <h2>Relevant games ({oppLabel})</h2>
+                  <div className="desc">Click a game to open the board and step through the moves.</div>
                   <table>
                     <thead><tr><th>Date</th><th>Event</th><th>Opponent's opponent</th><th>Elo</th><th>Opening</th><th>Result</th></tr></thead>
                     <tbody>
                       {relevant.map((g) => {
                         const other = g.opponentColor === "white" ? g.headers.Black : g.headers.White;
                         return (
-                          <tr key={g.id} className={g.isH2H ? "h2h-row" : ""}>
+                          <tr key={g.id} className={`row-clickable ${g.isH2H ? "h2h-row" : ""}`} onClick={() => setViewingGame(g)}>
                             <td>{g.headers.Date || "—"}</td>
                             <td>{g.headers.Event || "—"}</td>
                             <td>{other || "—"} {g.isH2H && <Swords size={11} style={{ verticalAlign: "-1px", marginLeft: 4, color: "#E89494" }} />}</td>
@@ -932,6 +1053,10 @@ export default function ChessPrepApp() {
           </>
         )}
       </div>
+
+      {viewingGame && (
+        <GameViewer game={viewingGame} orientation={myColor} onClose={() => setViewingGame(null)} />
+      )}
     </div>
   );
 }
