@@ -1,9 +1,5 @@
 import React from "react";
-
-const PIECE_GLYPHS = {
-  wk: "♔", wq: "♕", wr: "♖", wb: "♗", wn: "♘", wp: "♙",
-  bk: "♚", bq: "♛", br: "♜", bb: "♝", bn: "♞", bp: "♟",
-};
+import ChessPieceIcon from "./ChessPieceIcon.jsx";
 
 function parseFenBoard(fen) {
   const boardPart = (fen || "").split(" ")[0];
@@ -24,7 +20,7 @@ function parseFenBoard(fen) {
   });
 }
 
-export default function ChessBoard({ fen, lastMove, orientation = "white" }) {
+export default function ChessBoard({ fen, lastMove, orientation = "white", interactive = false, selectedSquare = null, legalTargets = [], onSquareClick, onDragStart, onDrop }) {
   const board2D = parseFenBoard(fen);
   const displayRows = orientation === "black"
     ? [...board2D].reverse().map((row) => [...row].reverse())
@@ -48,16 +44,34 @@ export default function ChessBoard({ fen, lastMove, orientation = "white" }) {
               const light = (fileIndex + rank) % 2 === 0;
               const squareName = `${String.fromCharCode("a".charCodeAt(0) + fileIndex)}${rank}`;
               const isLastMove = lastMove && (squareName === lastMove.from || squareName === lastMove.to);
+              const isSelected = selectedSquare === squareName;
+              const isLegalTarget = legalTargets.includes(squareName);
               return (
                 <div
                   key={c}
-                  className={`chess-square ${light ? "light" : "dark"} ${isLastMove ? "last-move" : ""}`}
+                  className={`chess-square ${light ? "light" : "dark"} ${isLastMove ? "last-move" : ""} ${isSelected ? "selected" : ""} ${interactive ? "interactive" : ""}`}
+                  onClick={interactive && onSquareClick ? () => onSquareClick(squareName) : undefined}
+                  onDragOver={interactive ? (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; } : undefined}
+                  onDrop={interactive ? (e) => {
+                    e.preventDefault();
+                    const from = e.dataTransfer.getData("text/plain");
+                    if (from) onDrop?.(from, squareName);
+                  } : undefined}
                 >
                   {cell && (
-                    <span className={`chess-piece piece-${cell.color}`}>
-                      {PIECE_GLYPHS[`${cell.color}${cell.type}`]}
+                    <span
+                      className="chess-piece"
+                      draggable={interactive}
+                      onDragStart={interactive ? (e) => {
+                        e.dataTransfer.effectAllowed = "move";
+                        e.dataTransfer.setData("text/plain", squareName);
+                        onDragStart?.(squareName);
+                      } : undefined}
+                    >
+                      <ChessPieceIcon type={cell.type} color={cell.color} />
                     </span>
                   )}
+                  {isLegalTarget && <span className={`move-hint ${cell ? "capture" : ""}`} />}
                   {c === 0 && <span className="chess-rank-label">{rankLabels[r]}</span>}
                   {r === 7 && <span className="chess-file-label">{fileLabels[c]}</span>}
                 </div>

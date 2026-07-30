@@ -10,6 +10,7 @@ import {
 import { storage } from "./storage.js";
 import { ECO_NAMES } from "./data/ecoNames.js";
 import GameViewer from "./components/GameViewer.jsx";
+import AnalysisBoard from "./components/AnalysisBoard.jsx";
 
 /* ============================== CONSTANTS ============================== */
 
@@ -653,9 +654,6 @@ export default function ChessPrepApp() {
 
         .info-line { display:flex; align-items:flex-start; gap: 8px; color: #8B93A1; font-size: 12px; margin-top: 10px; }
 
-        .empty-state { text-align:center; padding: 60px 20px; color: #8B93A1; }
-        .empty-state h2 { color: #E8E3D8; font-weight: 700; font-size: 20px; margin-bottom: 8px; }
-
         select.recency-select { width: auto; display:inline-block; margin-left: 8px; }
 
         .board-modal-backdrop { position: fixed; inset: 0; background: rgba(10,12,16,0.72); display:flex; align-items:center; justify-content:center; z-index: 100; padding: 24px; animation: fade-in 0.12s ease; }
@@ -671,19 +669,43 @@ export default function ChessPrepApp() {
         .board-modal-board { flex: 1 1 380px; max-width: 460px; }
         .board-modal-moves { flex: 1 1 220px; min-width: 200px; max-height: 460px; overflow-y: auto; border: 1px solid #2A313C; border-radius: 8px; padding: 8px 10px; background: #14171C; }
 
-        .chess-board { width: 100%; aspect-ratio: 1 / 1; border-radius: 4px; overflow: hidden; border: 2px solid #2A313C; box-shadow: 0 4px 16px rgba(0,0,0,0.3); }
+        .chess-board { width: 100%; aspect-ratio: 1 / 1; border-radius: 4px; overflow: hidden; border: 6px solid #4A3826; box-shadow: 0 4px 16px rgba(0,0,0,0.4); }
         .chess-board-grid { width: 100%; height: 100%; display: flex; flex-direction: column; }
         .chess-board-row { flex: 1; display: flex; }
         .chess-square { position: relative; flex: 1; display:flex; align-items:center; justify-content:center; }
-        .chess-square.light { background: #D9CDB4; }
-        .chess-square.dark { background: #7C6A50; }
-        .chess-square.last-move.light { background: #E8D68A; }
-        .chess-square.last-move.dark { background: #C9AA4E; }
-        .chess-piece { font-size: min(6.5vw, 42px); line-height: 1; user-select: none; color: #1B1F26; }
-        .chess-piece.piece-w { color: #F6F1E4; -webkit-text-stroke: 1px #1B1F26; text-shadow: 0 1px 1px rgba(0,0,0,0.3); }
-        .chess-piece.piece-b { color: #1B1F26; text-shadow: 0 1px 1px rgba(0,0,0,0.25); }
+        .chess-square.light { background: linear-gradient(135deg, #EDE0C8 0%, #E3D2AC 50%, #EDE0C8 100%); }
+        .chess-square.dark { background: linear-gradient(135deg, #8D6B45 0%, #6E4F30 50%, #8D6B45 100%); }
+        .chess-square.last-move.light { background: linear-gradient(135deg, #F0DE97 0%, #E7CE7C 100%); }
+        .chess-square.last-move.dark { background: linear-gradient(135deg, #C9A24E 0%, #B08B3C 100%); }
+        .chess-piece { width: 82%; height: 82%; display:flex; align-items:center; justify-content:center; user-select: none; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.35)); }
+        .piece-svg { width: 100%; height: 100%; }
         .chess-rank-label { position:absolute; top: 2px; left: 3px; font-size: 9px; color: rgba(0,0,0,0.4); font-weight: 600; }
         .chess-file-label { position:absolute; bottom: 1px; right: 3px; font-size: 9px; color: rgba(0,0,0,0.4); font-weight: 600; }
+        .chess-square.interactive { cursor: pointer; }
+        .chess-square.interactive .chess-piece { cursor: grab; }
+        .chess-square.interactive .chess-piece:active { cursor: grabbing; }
+        .chess-square.selected { box-shadow: inset 0 0 0 3px rgba(201,162,39,0.85); }
+        .move-hint { position: absolute; width: 28%; height: 28%; border-radius: 50%; background: rgba(20,23,28,0.35); pointer-events: none; }
+        .move-hint.capture { width: 92%; height: 92%; background: transparent; border-radius: 50%; box-shadow: inset 0 0 0 4px rgba(20,23,28,0.4); }
+
+        .analysis-board-layout { display:flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+        .analysis-board-main { flex: 1 1 420px; max-width: 520px; }
+        .analysis-board-side { flex: 1 1 240px; min-width: 220px; }
+        .analysis-board-eval-row { display:flex; gap: 10px; align-items: stretch; }
+        .eval-bar-wrap { width: 22px; border-radius: 4px; overflow: hidden; background: #1B1F26; border: 1px solid #2A313C; position: relative; display:flex; flex-direction: column; justify-content: flex-end; flex-shrink: 0; }
+        .eval-bar-wrap.eval-bar-flipped { justify-content: flex-start; }
+        .eval-bar-fill { background: #E8E3D8; width: 100%; transition: height 0.25s ease; }
+        .eval-bar-label { position:absolute; bottom: 4px; left: 50%; transform: translateX(-50%); font-size: 9px; font-family: "JetBrains Mono", monospace; color: #8B93A1; white-space: nowrap; }
+        .analysis-eval-line { margin-top: 10px; font-size: 13px; color: #C9C3B4; display:flex; align-items:center; gap: 6px; min-height: 18px; }
+        .analysis-eval-line .muted { color: #8B93A1; font-size: 11.5px; }
+        .eval-error { display:flex; align-items:center; gap: 6px; color: #E8C778; font-size: 12.5px; }
+        .analysis-pgn-input { min-height: 90px; font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 11.5px; }
+        .info-card { background: #14171C; border: 1px solid #2A313C; border-radius: 8px; padding: 10px 12px; margin-top: 6px; margin-bottom: 4px; }
+        .info-card-name { font-size: 13px; font-weight: 600; }
+        .info-card-name .muted { color: #8B93A1; font-weight: 400; font-size: 11.5px; }
+        .info-card-sub { color: #8B93A1; font-size: 11.5px; margin-top: 3px; }
+        .info-card-ratings { display:flex; gap: 10px; margin-top: 6px; font-size: 11.5px; color: #C9C3B4; font-family: "JetBrains Mono", monospace; }
+        .analysis-board-side .move-list { max-height: 360px; overflow-y: auto; border: 1px solid #2A313C; border-radius: 8px; padding: 8px 10px; background: #14171C; margin-top: 6px; }
 
         .board-controls { display:flex; align-items:center; justify-content:center; gap: 6px; margin-top: 12px; }
         .board-controls .btn-icon { width: auto; }
@@ -837,10 +859,7 @@ export default function ChessPrepApp() {
       {/* ---------------- MAIN ---------------- */}
       <div className="main">
         {games === null ? (
-          <div className="empty-state">
-            <h2>No games analyzed yet</h2>
-            <p>Fill in the opponent's name, paste their PGNs on the left, and hit "Parse &amp; analyze".</p>
-          </div>
+          <AnalysisBoard />
         ) : (
           <>
             {parseWarning && (
@@ -855,10 +874,12 @@ export default function ChessPrepApp() {
             )}
 
             <div className="tabs">
-              {[["overview", "Overview"], ["tree", "Opening Tree"], ["performance", "Performance"], ["games", "Games"]].map(([key, label]) => (
+              {[["board", "Board"], ["overview", "Overview"], ["tree", "Opening Tree"], ["performance", "Performance"], ["games", "Games"]].map(([key, label]) => (
                 <div key={key} className={`tab ${activeTab === key ? "active" : ""}`} onClick={() => setActiveTab(key)}>{label}</div>
               ))}
             </div>
+
+            {activeTab === "board" && <AnalysisBoard />}
 
             {activeTab === "overview" && (
               <>
