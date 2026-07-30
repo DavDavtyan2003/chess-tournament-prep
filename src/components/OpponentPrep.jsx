@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import { storage } from "../storage.js";
 import { ECO_NAMES } from "../data/ecoNames.js";
-import GameViewer from "./GameViewer.jsx";
 
 const TREE_MAX_PLY = 14;
 const TREE_MAX_CHILDREN = 5;
@@ -245,7 +244,7 @@ function TreeNode({ node, parentCount, depth }) {
 
 /* ============================== MAIN COMPONENT ============================== */
 
-export default function OpponentPrep() {
+export default function OpponentPrep({ onOpenGame }) {
   const [profile, setProfile] = useState({ name: "", country: "", age: "", fideId: "", title: "", ratingStd: "", ratingRapid: "", ratingBlitz: "" });
   const [myName, setMyName] = useState("");
   const [myColor, setMyColor] = useState("white");
@@ -258,7 +257,6 @@ export default function OpponentPrep() {
   const [importStatus, setImportStatus] = useState("");
   const [showPasteBox, setShowPasteBox] = useState(false);
   const fileInputRef = useRef(null);
-  const [viewingGame, setViewingGame] = useState(null);
   const [setupCollapsed, setSetupCollapsed] = useState(false);
 
   const [savedList, setSavedList] = useState([]);
@@ -407,6 +405,17 @@ export default function OpponentPrep() {
 
   const h2hGames = useMemo(() => (games || []).filter((g) => g.isH2H), [games]);
   const unmatchedGames = useMemo(() => (games || []).filter((g) => !g.opponentColor), [games]);
+
+  function byNewestFirst(a, b) {
+    const da = parsePgnDate(a.headers.Date);
+    const db = parsePgnDate(b.headers.Date);
+    if (da && db) return db - da;
+    if (da && !db) return -1;
+    if (!da && db) return 1;
+    return 0;
+  }
+  const relevantByDate = useMemo(() => [...relevant].sort(byNewestFirst), [relevant]);
+  const unmatchedByDate = useMemo(() => [...unmatchedGames].sort(byNewestFirst), [unmatchedGames]);
   const otherSideCount = useMemo(() => {
     if (!games) return 0;
     const wantOpponentColor = myColor === "white" ? "black" : "white";
@@ -738,10 +747,10 @@ export default function OpponentPrep() {
                 <table>
                   <thead><tr><th>Date</th><th>Event</th><th>Opponent's opponent</th><th>Elo</th><th>Opening</th><th>Result</th></tr></thead>
                   <tbody>
-                    {relevant.map((g) => {
+                    {relevantByDate.map((g) => {
                       const other = g.opponentColor === "white" ? g.headers.Black : g.headers.White;
                       return (
-                        <tr key={g.id} className={`row-clickable ${g.isH2H ? "h2h-row" : ""}`} onClick={() => setViewingGame(g)}>
+                        <tr key={g.id} className={`row-clickable ${g.isH2H ? "h2h-row" : ""}`} onClick={() => onOpenGame(g)}>
                           <td>{g.headers.Date || "—"}</td>
                           <td>{g.headers.Event || "—"}</td>
                           <td>{other || "—"} {g.isH2H && <Swords size={11} style={{ verticalAlign: "-1px", marginLeft: 4, color: "#E89494" }} />}</td>
@@ -763,7 +772,7 @@ export default function OpponentPrep() {
                   <table>
                     <thead><tr><th>Date</th><th>White</th><th>Black</th><th>Result</th></tr></thead>
                     <tbody>
-                      {unmatchedGames.map((g) => (
+                      {unmatchedByDate.map((g) => (
                         <tr key={g.id}><td>{g.headers.Date || "—"}</td><td>{g.headers.White || "—"}</td><td>{g.headers.Black || "—"}</td><td>{g.headers.Result || "—"}</td></tr>
                       ))}
                     </tbody>
@@ -773,10 +782,6 @@ export default function OpponentPrep() {
             </>
           )}
         </>
-      )}
-
-      {viewingGame && (
-        <GameViewer game={viewingGame} orientation={myColor} onClose={() => setViewingGame(null)} />
       )}
     </div>
   );

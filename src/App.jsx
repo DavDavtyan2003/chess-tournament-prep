@@ -9,6 +9,11 @@ export default function ChessPrepApp() {
   const [mode, setMode] = useState("board");
   const game = useAnalysisGame();
 
+  function handleOpenGame(g) {
+    game.loadGame(g.moves, g.headers);
+    setMode("board");
+  }
+
   return (
     <div className="app">
       <style>{`
@@ -232,7 +237,7 @@ export default function ChessPrepApp() {
         <div className="analysis-board-layout">
           <BoardPane game={game} />
           <div className="side-slot" style={{ display: mode === "board" ? "block" : "none" }}><AnalysisSidePanel game={game} /></div>
-          <div className="side-slot" style={{ display: mode === "prep" ? "block" : "none" }}><OpponentPrep /></div>
+          <div className="side-slot" style={{ display: mode === "prep" ? "block" : "none" }}><OpponentPrep onOpenGame={handleOpenGame} /></div>
         </div>
       </div>
     </div>

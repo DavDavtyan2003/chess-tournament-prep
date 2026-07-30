@@ -15,6 +15,21 @@ function positionsFromChess(chess) {
   return positions;
 }
 
+// Replays a raw SAN move list (e.g. from the custom PGN parser, not chess.js's own
+// loadPgn) into a position array, stopping gracefully if a move can't be replayed.
+function positionsFromSanList(moves) {
+  const chess = new Chess();
+  const positions = [{ fen: chess.fen(), from: null, to: null, san: null }];
+  let stoppedAtPly = null;
+  for (let i = 0; i < moves.length; i++) {
+    let result = null;
+    try { result = chess.move(moves[i]); } catch (e) { result = null; }
+    if (!result) { stoppedAtPly = i + 1; break; }
+    positions.push({ fen: result.after, from: result.from, to: result.to, san: result.san });
+  }
+  return { positions, stoppedAtPly };
+}
+
 function evalToWinPct(evaluation) {
   if (!evaluation) return 50;
   if (evaluation.type === "mate") return evaluation.value > 0 ? 100 : 0;
@@ -144,6 +159,17 @@ export function useAnalysisGame() {
     }
   }
 
+  // Loads a game from the shape produced by the custom PGN parser ({ moves: SAN[], headers }),
+  // used e.g. when opening a game from the Opponent Prep games list.
+  function loadGame(moves, headers) {
+    const { positions: newPositions, stoppedAtPly } = positionsFromSanList(moves || []);
+    setPositions(newPositions);
+    setPly(newPositions.length - 1);
+    setSelectedSquare(null);
+    setLoadError(stoppedAtPly ? `Move list stopped at move ${Math.ceil(stoppedAtPly / 2)} — the rest couldn't be replayed.` : "");
+    setGameHeaders(headers && (headers.White || headers.Black) ? headers : null);
+  }
+
   const bestMoveSan = useMemo(() => {
     if (!bestMoveUci) return null;
     try {
@@ -176,7 +202,7 @@ export function useAnalysisGame() {
   return {
     current, lastPly, ply, orientation, setOrientation, selectedSquare, legalTargets,
     goTo, handleSquareClick, handlePieceDragStart, handlePieceDrop, handleReset,
-    pgnInput, setPgnInput, loadError, handleLoadPgn, gameHeaders,
+    pgnInput, setPgnInput, loadError, handleLoadPgn, loadGame, gameHeaders,
     ready, thinking, evaluation, depth, engineError, bestMoveSan, winPct, evalLabel,
     movePairs,
   };
