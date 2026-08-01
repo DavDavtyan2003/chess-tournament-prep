@@ -508,6 +508,11 @@ export default function OpponentPrep({ onOpenGame }) {
             <button className="btn ghost back-link" onClick={() => setSetupCollapsed(true)}>‹ Back to analysis</button>
           )}
 
+          <div className="setup-fide-block">
+            <label className="field-label" style={{ marginTop: 0 }}>FIDE lookup</label>
+            <FideLookup defaultQuery={profile.name} onResult={handleFideResult} />
+          </div>
+
           <div className="setup-grid">
             <div className="setup-field setup-field-wide">
               <label className="field-label">Opponent name (as in PGN)</label>
@@ -519,10 +524,6 @@ export default function OpponentPrep({ onOpenGame }) {
                 <button className={myColor === "white" ? "active" : ""} onClick={() => setMyColor("white")}>White</button>
                 <button className={myColor === "black" ? "active" : ""} onClick={() => setMyColor("black")}>Black</button>
               </div>
-            </div>
-            <div className="setup-field">
-              <label className="field-label">FIDE lookup</label>
-              <FideLookup defaultQuery={profile.name} onResult={handleFideResult} />
             </div>
           </div>
 

@@ -139,7 +139,8 @@ export default function ChessPrepApp() {
         .opponent-prep { max-width: 1100px; margin: 0 auto; }
 
         .setup-card { background: #1C2129; border-radius: 10px; padding: 22px 24px; margin-bottom: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.16); }
-        .setup-grid { display:grid; grid-template-columns: 2fr 1fr 1.4fr; gap: 16px; }
+        .setup-grid { display:grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+        .setup-fide-block { padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px solid #2A313C; }
         .setup-grid-compact { grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 12px; margin-top: 4px; }
         .setup-field { display:flex; flex-direction: column; }
         .color-toggle { display:flex; border: 1px solid #2A313C; border-radius: 6px; overflow: hidden; margin-top: 6px; }

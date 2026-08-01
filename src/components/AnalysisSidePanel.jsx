@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { AlertTriangle, MapPin } from "lucide-react";
-import FideLookup from "./FideLookup.jsx";
 
 function MoveChain({ segments, currentId, onNavigate, onContextMenu }) {
   return segments.map((seg, i) => {
@@ -65,9 +64,6 @@ export default function AnalysisSidePanel({ game }) {
 
   return (
     <div className="analysis-board-side">
-      <label className="field-label">Opponent lookup</label>
-      <FideLookup />
-
       {gameHeaders && (
         <>
           <label className="field-label">Game info</label>
