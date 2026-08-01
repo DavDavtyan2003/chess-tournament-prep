@@ -113,6 +113,15 @@ export default function ChessPrepApp() {
         .move-san { padding: 1px 5px; border-radius: 4px; cursor: pointer; }
         .move-san:hover { background: #232935; }
         .move-san.active { background: #C9A227; color: #14171C; font-weight: 600; }
+        .variation-set { display:inline; }
+        .variation { color: #8B93A1; font-style: italic; margin: 0 2px; }
+        .variation .move-num { color: #6E7583; }
+        .variation .move-san { padding: 0 3px; }
+        .variation .move-san.active { background: #6E5F2A; color: #F0DE97; }
+
+        .move-context-menu { position: fixed; z-index: 200; background: #1C2129; border: 1px solid #2A313C; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); padding: 4px; min-width: 150px; }
+        .move-context-menu button { display:block; width: 100%; text-align: left; background: transparent; border: none; color: #E8E3D8; padding: 8px 10px; border-radius: 5px; font-size: 12.5px; cursor: pointer; }
+        .move-context-menu button:hover { background: #232935; }
 
         /* ---- Opponent Prep ---- */
         .opponent-prep { max-width: 1100px; margin: 0 auto; }

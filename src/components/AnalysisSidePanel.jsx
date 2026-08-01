@@ -1,14 +1,61 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AlertTriangle, Search, MapPin } from "lucide-react";
 
+function MoveChain({ segments, currentId, onNavigate, onContextMenu }) {
+  return segments.map((seg, i) => {
+    if (seg.type === "variations") {
+      return (
+        <span className="variation-set" key={`v${i}`}>
+          {seg.chains.map((chain, ci) => (
+            <span className="variation" key={ci}>
+              (<MoveChain segments={chain} currentId={currentId} onNavigate={onNavigate} onContextMenu={onContextMenu} />)
+            </span>
+          ))}
+        </span>
+      );
+    }
+    const isWhite = seg.ply % 2 === 1;
+    const moveNum = Math.ceil(seg.ply / 2);
+    const showNum = isWhite || i === 0;
+    return (
+      <React.Fragment key={seg.id}>
+        {showNum && <span className="move-num">{moveNum}{isWhite ? "." : "…"}</span>}
+        <span
+          className={`move-san ${seg.id === currentId ? "active" : ""}`}
+          onClick={() => onNavigate(seg.id)}
+          onContextMenu={(e) => { e.preventDefault(); onContextMenu(e, seg.id); }}
+        >
+          {seg.san}
+        </span>
+      </React.Fragment>
+    );
+  });
+}
+
 export default function AnalysisSidePanel({ game }) {
-  const { fenInput, setFenInput, loadError, handleLoadFen, gameHeaders, ply, movePairs, goTo } = game;
+  const {
+    fenInput, setFenInput, loadError, handleLoadFen, gameHeaders,
+    currentId, moveTree, goToNode, makeMainLine, deleteNode,
+  } = game;
 
   const [fideId, setFideId] = useState("");
   const [fideResult, setFideResult] = useState(null);
   const [fideStatus, setFideStatus] = useState("");
   const [fideLoading, setFideLoading] = useState(false);
   const [showFenInput, setShowFenInput] = useState(false);
+  const [contextMenu, setContextMenu] = useState(null); // { x, y, nodeId }
+
+  useEffect(() => {
+    if (!contextMenu) return;
+    function close() { setContextMenu(null); }
+    function onKey(e) { if (e.key === "Escape") close(); }
+    document.addEventListener("click", close);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("click", close);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [contextMenu]);
 
   async function handleFideLookup() {
     const id = fideId.trim();
@@ -32,6 +79,10 @@ export default function AnalysisSidePanel({ game }) {
   function submitFen() {
     handleLoadFen();
     setShowFenInput(false);
+  }
+
+  function openContextMenu(e, nodeId) {
+    setContextMenu({ x: e.clientX, y: e.clientY, nodeId });
   }
 
   return (
@@ -102,25 +153,18 @@ export default function AnalysisSidePanel({ game }) {
 
       <label className="field-label">Moves</label>
       <div className="move-list">
-        {movePairs.length === 0 && <div className="desc">Play a move on the board, or load a position.</div>}
+        {moveTree.length === 0 && <div className="desc">Play a move on the board, or load a position. Right-click a move to make it the main line or delete it.</div>}
         <div className="move-list-flow">
-          {movePairs.map((mp) => (
-            <React.Fragment key={mp.num}>
-              <span className="move-num">{mp.num}.</span>
-              {mp.whiteSan && (
-                <span className={`move-san ${ply === mp.whitePly ? "active" : ""}`} onClick={() => goTo(mp.whitePly)}>
-                  {mp.whiteSan}
-                </span>
-              )}
-              {mp.blackSan && (
-                <span className={`move-san ${ply === mp.blackPly ? "active" : ""}`} onClick={() => goTo(mp.blackPly)}>
-                  {mp.blackSan}
-                </span>
-              )}
-            </React.Fragment>
-          ))}
+          <MoveChain segments={moveTree} currentId={currentId} onNavigate={goToNode} onContextMenu={openContextMenu} />
         </div>
       </div>
+
+      {contextMenu && (
+        <div className="move-context-menu" style={{ left: contextMenu.x, top: contextMenu.y }} onClick={(e) => e.stopPropagation()}>
+          <button onClick={() => { makeMainLine(contextMenu.nodeId); setContextMenu(null); }}>Make main line</button>
+          <button onClick={() => { deleteNode(contextMenu.nodeId); setContextMenu(null); }}>Delete</button>
+        </div>
+      )}
     </div>
   );
 }
