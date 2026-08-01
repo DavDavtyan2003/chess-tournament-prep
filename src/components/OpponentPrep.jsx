@@ -141,18 +141,20 @@ function openingKey(g) {
 /* ============================== TREE BUILDING ============================== */
 
 function buildTree(games) {
-  const root = { san: null, ply: 0, count: 0, wins: 0, draws: 0, losses: 0, children: {} };
+  const root = { san: null, ply: 0, count: 0, wins: 0, draws: 0, losses: 0, children: {}, games: [] };
   games.forEach((g) => {
     let node = root;
     node.count++;
+    node.games.push(g);
     const s = opponentScore(g);
     if (s === 1) node.wins++; else if (s === 0.5) node.draws++; else if (s === 0) node.losses++;
     const maxPly = Math.min(g.moves.length, TREE_MAX_PLY);
     for (let i = 0; i < maxPly; i++) {
       const mv = g.moves[i];
-      if (!node.children[mv]) node.children[mv] = { san: mv, ply: i + 1, count: 0, wins: 0, draws: 0, losses: 0, children: {} };
+      if (!node.children[mv]) node.children[mv] = { san: mv, ply: i + 1, count: 0, wins: 0, draws: 0, losses: 0, children: {}, games: [] };
       node = node.children[mv];
       node.count++;
+      node.games.push(g);
       if (s === 1) node.wins++; else if (s === 0.5) node.draws++; else if (s === 0) node.losses++;
     }
   });
@@ -210,8 +212,9 @@ function ConfBadge({ n }) {
   return <span className={`conf-badge ${c.cls}`}>{c.label} conf · n={n}</span>;
 }
 
-function TreeNode({ node, parentCount, depth }) {
+function TreeNode({ node, parentCount, depth, onOpenGame }) {
   const [expanded, setExpanded] = useState(depth < 2);
+  const [showGames, setShowGames] = useState(false);
   const childrenArr = Object.values(node.children).sort((a, b) => b.count - a.count);
   const shown = childrenArr.slice(0, TREE_MAX_CHILDREN);
   const hidden = childrenArr.length - shown.length;
@@ -220,6 +223,7 @@ function TreeNode({ node, parentCount, depth }) {
   const scorePct = node.count ? ((scoreTotal / node.count) * 100).toFixed(0) : "0";
   const moveNum = Math.ceil(node.ply / 2);
   const label = node.ply % 2 === 1 ? `${moveNum}.${node.san}` : `${moveNum}...${node.san}`;
+  const hasFewGames = node.ply > 0 && node.count > 0 && node.count <= 3;
 
   return (
     <div className="tree-branch">
@@ -232,9 +236,28 @@ function TreeNode({ node, parentCount, depth }) {
         <span className="tree-pct">{pct}%</span>
         <span className="tree-n">n={node.count}</span>
         <span className={`tree-score ${scorePct >= 55 ? "good" : scorePct <= 45 ? "bad" : ""}`}>{scorePct}%</span>
+        {hasFewGames && (
+          <span className="tree-games-toggle" onClick={(e) => { e.stopPropagation(); setShowGames((s) => !s); }}>
+            {showGames ? "hide" : "show"} game{node.count > 1 ? "s" : ""}
+          </span>
+        )}
       </div>
+      {showGames && hasFewGames && (
+        <div className="tree-games-list" style={{ paddingLeft: depth * 18 + 21 }}>
+          {node.games.map((g) => {
+            const other = g.opponentColor === "white" ? g.headers.Black : g.headers.White;
+            return (
+              <div className="tree-game-item" key={g.id} onClick={() => onOpenGame(g)}>
+                <span className="tree-game-date">{g.headers.Date || "—"}</span>
+                <span className="tree-game-opp">vs {other || "—"}</span>
+                <span className="tree-game-result">{g.headers.Result || "—"}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
       {expanded && shown.map((child) => (
-        <TreeNode key={child.san + child.ply} node={child} parentCount={node.count} depth={depth + 1} />
+        <TreeNode key={child.san + child.ply} node={child} parentCount={node.count} depth={depth + 1} onOpenGame={onOpenGame} />
       ))}
       {expanded && hidden > 0 && (
         <div className="tree-more" style={{ paddingLeft: (depth + 1) * 18 + 13 }}>+{hidden} more branch{hidden > 1 ? "es" : ""}</div>
@@ -646,7 +669,7 @@ export default function OpponentPrep({ onOpenGame }) {
                 <h2>Move tree — {oppLabel}</h2>
                 <div className="desc">Branches sorted by frequency (top {TREE_MAX_CHILDREN} shown per node, up to {TREE_MAX_PLY / 2} full moves deep). Percentage is bar + text; last column is opponent's score % from that node onward.</div>
                 {relevant.length === 0 ? <div className="desc">No games to show.</div> : Object.values(tree.children).sort((a, b) => b.count - a.count).map((child) => (
-                  <TreeNode key={child.san + child.ply} node={child} parentCount={tree.count} depth={0} />
+                  <TreeNode key={child.san + child.ply} node={child} parentCount={tree.count} depth={0} onOpenGame={onOpenGame} />
                 ))}
               </div>
 

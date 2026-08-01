@@ -236,6 +236,14 @@ export default function ChessPrepApp() {
         .tree-score.good { color: #5FA777; }
         .tree-score.bad { color: #B25550; }
         .tree-more { font-size: 11.5px; color: #8B93A1; padding: 3px 0; }
+        .tree-games-toggle { font-size: 11px; color: #C9A227; cursor: pointer; padding: 2px 6px; border-radius: 4px; margin-left: 4px; }
+        .tree-games-toggle:hover { background: #232935; text-decoration: underline; }
+        .tree-games-list { padding-bottom: 4px; }
+        .tree-game-item { display:flex; align-items:center; gap: 10px; padding: 4px 8px; font-size: 12px; cursor: pointer; border-radius: 4px; color: #C9C3B4; }
+        .tree-game-item:hover { background: #232935; color: #E8E3D8; }
+        .tree-game-date { color: #8B93A1; width: 74px; flex-shrink: 0; font-family: "JetBrains Mono", monospace; font-size: 11px; }
+        .tree-game-opp { flex: 1; }
+        .tree-game-result { color: #8B93A1; font-family: "JetBrains Mono", monospace; font-size: 11px; }
 
         .info-line { display:flex; align-items:flex-start; gap: 8px; color: #8B93A1; font-size: 12px; margin-top: 10px; }
         select.recency-select { width: auto; display:inline-block; margin-left: 8px; }
