@@ -95,7 +95,6 @@ export default function ChessPrepApp() {
         .analysis-eval-line { margin-top: 10px; font-size: 13px; color: #C9C3B4; display:flex; align-items:center; gap: 6px; min-height: 18px; }
         .analysis-eval-line .muted { color: #8B93A1; font-size: 11.5px; }
         .eval-error { display:flex; align-items:center; gap: 6px; color: #E8C778; font-size: 12.5px; }
-        .analysis-pgn-input { min-height: 90px; font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 11.5px; }
         .info-card { background: #14171C; border: 1px solid #2A313C; border-radius: 8px; padding: 10px 12px; margin-top: 6px; margin-bottom: 4px; }
         .info-card-name { font-size: 13px; font-weight: 600; }
         .info-card-name .muted { color: #8B93A1; font-weight: 400; font-size: 11.5px; }
@@ -108,11 +107,12 @@ export default function ChessPrepApp() {
         .board-ply-indicator { font-size: 11.5px; color: #8B93A1; min-width: 52px; text-align:center; font-family: "JetBrains Mono", monospace; }
         .board-warning { display:flex; align-items:center; gap: 6px; color: #E8C778; font-size: 11.5px; margin-top: 10px; background: #2A2418; border: 1px solid #6b5a1f; border-radius: 6px; padding: 7px 9px; }
 
-        .move-list-row { display:flex; align-items:center; gap: 8px; padding: 3px 2px; font-size: 12.5px; font-family: "JetBrains Mono", monospace; }
-        .move-list-num { color: #8B93A1; width: 26px; flex-shrink: 0; }
-        .move-list-san { flex: 1; padding: 2px 6px; border-radius: 4px; cursor: pointer; }
-        .move-list-san:hover { background: #232935; }
-        .move-list-san.active { background: #C9A227; color: #14171C; font-weight: 600; }
+        .move-list-flow { display:flex; flex-wrap: wrap; align-items: baseline; gap: 3px 4px; font-size: 13px; font-family: "JetBrains Mono", monospace; line-height: 1.7; }
+        .move-num { color: #8B93A1; margin-left: 4px; }
+        .move-num:first-child { margin-left: 0; }
+        .move-san { padding: 1px 5px; border-radius: 4px; cursor: pointer; }
+        .move-san:hover { background: #232935; }
+        .move-san.active { background: #C9A227; color: #14171C; font-weight: 600; }
 
         /* ---- Opponent Prep ---- */
         .opponent-prep { max-width: 1100px; margin: 0 auto; }

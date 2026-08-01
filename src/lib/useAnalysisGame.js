@@ -4,17 +4,6 @@ import { useStockfish } from "./useStockfish.js";
 
 const START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-function positionsFromChess(chess) {
-  const verbose = chess.history({ verbose: true });
-  const positions = [{ fen: START_FEN, from: null, to: null, san: null }];
-  const tmp = new Chess();
-  for (const m of verbose) {
-    tmp.move({ from: m.from, to: m.to, promotion: m.promotion || "q" });
-    positions.push({ fen: tmp.fen(), from: m.from, to: m.to, san: m.san });
-  }
-  return positions;
-}
-
 // Replays a raw SAN move list (e.g. from the custom PGN parser, not chess.js's own
 // loadPgn) into a position array, stopping gracefully if a move can't be replayed.
 function positionsFromSanList(moves) {
@@ -50,7 +39,7 @@ export function useAnalysisGame() {
   const [ply, setPly] = useState(0);
   const [orientation, setOrientation] = useState("white");
   const [selectedSquare, setSelectedSquare] = useState(null);
-  const [pgnInput, setPgnInput] = useState("");
+  const [fenInput, setFenInput] = useState("");
   const [loadError, setLoadError] = useState("");
   const [gameHeaders, setGameHeaders] = useState(null);
   const gameRef = useRef(new Chess());
@@ -143,19 +132,18 @@ export function useAnalysisGame() {
     setGameHeaders(null);
   }
 
-  function handleLoadPgn() {
-    if (!pgnInput.trim()) return;
+  function handleLoadFen() {
+    if (!fenInput.trim()) return;
     try {
       const chess = new Chess();
-      chess.loadPgn(pgnInput.trim());
-      const newPositions = positionsFromChess(chess);
-      setPositions(newPositions);
-      setPly(newPositions.length - 1);
+      chess.load(fenInput.trim());
+      setPositions([{ fen: chess.fen(), from: null, to: null, san: null }]);
+      setPly(0);
+      setSelectedSquare(null);
       setLoadError("");
-      const headers = chess.header();
-      setGameHeaders(headers.White || headers.Black ? headers : null);
+      setGameHeaders(null);
     } catch (e) {
-      setLoadError("Couldn't parse that PGN — check the format and try again.");
+      setLoadError("That doesn't look like a valid FEN — check the format and try again.");
     }
   }
 
@@ -202,7 +190,7 @@ export function useAnalysisGame() {
   return {
     current, lastPly, ply, orientation, setOrientation, selectedSquare, legalTargets,
     goTo, handleSquareClick, handlePieceDragStart, handlePieceDrop, handleReset,
-    pgnInput, setPgnInput, loadError, handleLoadPgn, loadGame, gameHeaders,
+    fenInput, setFenInput, loadError, handleLoadFen, loadGame, gameHeaders,
     ready, thinking, evaluation, depth, engineError, bestMoveSan, winPct, evalLabel,
     movePairs,
   };

@@ -1,13 +1,14 @@
 import React, { useState } from "react";
-import { ClipboardPaste, AlertTriangle, Search } from "lucide-react";
+import { AlertTriangle, Search, MapPin } from "lucide-react";
 
 export default function AnalysisSidePanel({ game }) {
-  const { pgnInput, setPgnInput, loadError, handleLoadPgn, gameHeaders, ply, movePairs, goTo } = game;
+  const { fenInput, setFenInput, loadError, handleLoadFen, gameHeaders, ply, movePairs, goTo } = game;
 
   const [fideId, setFideId] = useState("");
   const [fideResult, setFideResult] = useState(null);
   const [fideStatus, setFideStatus] = useState("");
   const [fideLoading, setFideLoading] = useState(false);
+  const [showFenInput, setShowFenInput] = useState(false);
 
   async function handleFideLookup() {
     const id = fideId.trim();
@@ -26,6 +27,11 @@ export default function AnalysisSidePanel({ game }) {
     } finally {
       setFideLoading(false);
     }
+  }
+
+  function submitFen() {
+    handleLoadFen();
+    setShowFenInput(false);
   }
 
   return (
@@ -72,38 +78,48 @@ export default function AnalysisSidePanel({ game }) {
         </>
       )}
 
-      <label className="field-label">Load a PGN</label>
-      <textarea
-        className="analysis-pgn-input"
-        value={pgnInput}
-        onChange={(e) => setPgnInput(e.target.value)}
-        placeholder={'[Event "..."]\n[White "..."]\n[Black "..."]\n\n1. e4 e5 2. Nf3 ...'}
-      />
-      <div className="btn-row">
-        <button className="btn ghost" onClick={handleLoadPgn}><ClipboardPaste size={14} /> Load PGN</button>
-      </div>
+      <label className="field-label">Position</label>
+      {!showFenInput ? (
+        <button className="btn ghost" onClick={() => setShowFenInput(true)}><MapPin size={14} /> Load position</button>
+      ) : (
+        <div className="fide-row">
+          <div>
+            <input
+              type="text"
+              value={fenInput}
+              onChange={(e) => setFenInput(e.target.value)}
+              placeholder="Paste a FEN…"
+              autoFocus
+              onKeyDown={(e) => e.key === "Enter" && submitFen()}
+            />
+          </div>
+          <button className="btn ghost btn-icon" onClick={submitFen}>Load</button>
+        </div>
+      )}
       {loadError && (
         <div className="board-warning"><AlertTriangle size={13} /> {loadError}</div>
       )}
 
       <label className="field-label">Moves</label>
       <div className="move-list">
-        {movePairs.length === 0 && <div className="desc">Play a move on the board, or load a PGN.</div>}
-        {movePairs.map((mp) => (
-          <div className="move-list-row" key={mp.num}>
-            <span className="move-list-num">{mp.num}.</span>
-            {mp.whiteSan && (
-              <span className={`move-list-san ${ply === mp.whitePly ? "active" : ""}`} onClick={() => goTo(mp.whitePly)}>
-                {mp.whiteSan}
-              </span>
-            )}
-            {mp.blackSan && (
-              <span className={`move-list-san ${ply === mp.blackPly ? "active" : ""}`} onClick={() => goTo(mp.blackPly)}>
-                {mp.blackSan}
-              </span>
-            )}
-          </div>
-        ))}
+        {movePairs.length === 0 && <div className="desc">Play a move on the board, or load a position.</div>}
+        <div className="move-list-flow">
+          {movePairs.map((mp) => (
+            <React.Fragment key={mp.num}>
+              <span className="move-num">{mp.num}.</span>
+              {mp.whiteSan && (
+                <span className={`move-san ${ply === mp.whitePly ? "active" : ""}`} onClick={() => goTo(mp.whitePly)}>
+                  {mp.whiteSan}
+                </span>
+              )}
+              {mp.blackSan && (
+                <span className={`move-san ${ply === mp.blackPly ? "active" : ""}`} onClick={() => goTo(mp.blackPly)}>
+                  {mp.blackSan}
+                </span>
+              )}
+            </React.Fragment>
+          ))}
+        </div>
       </div>
     </div>
   );
