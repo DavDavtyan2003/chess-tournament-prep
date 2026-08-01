@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { AlertTriangle, Search, MapPin } from "lucide-react";
+import { AlertTriangle, MapPin } from "lucide-react";
+import FideLookup from "./FideLookup.jsx";
 
 function MoveChain({ segments, currentId, onNavigate, onContextMenu }) {
   return segments.map((seg, i) => {
@@ -38,10 +39,6 @@ export default function AnalysisSidePanel({ game }) {
     currentId, moveTree, goToNode, makeMainLine, deleteNode,
   } = game;
 
-  const [fideId, setFideId] = useState("");
-  const [fideResult, setFideResult] = useState(null);
-  const [fideStatus, setFideStatus] = useState("");
-  const [fideLoading, setFideLoading] = useState(false);
   const [showFenInput, setShowFenInput] = useState(false);
   const [contextMenu, setContextMenu] = useState(null); // { x, y, nodeId }
 
@@ -57,25 +54,6 @@ export default function AnalysisSidePanel({ game }) {
     };
   }, [contextMenu]);
 
-  async function handleFideLookup() {
-    const id = fideId.trim();
-    if (!id) { setFideStatus("Enter a FIDE ID first."); return; }
-    setFideLoading(true);
-    setFideStatus("Looking up…");
-    try {
-      const res = await fetch(`/api/fide?id=${encodeURIComponent(id)}`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Lookup failed");
-      setFideResult(data);
-      setFideStatus("");
-    } catch (e) {
-      setFideResult(null);
-      setFideStatus(e.message === "Failed to fetch" ? "Lookup failed — check the ID and try again." : `Lookup failed: ${e.message}`);
-    } finally {
-      setFideLoading(false);
-    }
-  }
-
   function submitFen() {
     handleLoadFen();
     setShowFenInput(false);
@@ -87,29 +65,8 @@ export default function AnalysisSidePanel({ game }) {
 
   return (
     <div className="analysis-board-side">
-      <label className="field-label">FIDE lookup</label>
-      <div className="fide-row">
-        <div>
-          <input type="text" value={fideId} onChange={(e) => setFideId(e.target.value)} placeholder="FIDE ID, e.g. 13300474" />
-        </div>
-        <button className="btn ghost btn-icon" onClick={handleFideLookup} disabled={fideLoading} title="Fetch from FIDE">
-          <Search size={14} /> {fideLoading ? "…" : "Fetch"}
-        </button>
-      </div>
-      {fideStatus && <div className="status-line">{fideStatus}</div>}
-      {fideResult && (
-        <div className="info-card">
-          <div className="info-card-name">{fideResult.name}</div>
-          <div className="info-card-sub">
-            {[fideResult.title, fideResult.federation, fideResult.birthYear].filter(Boolean).join(" · ")}
-          </div>
-          <div className="info-card-ratings">
-            {fideResult.standard != null && <span>Std {fideResult.standard}</span>}
-            {fideResult.rapid != null && <span>Rapid {fideResult.rapid}</span>}
-            {fideResult.blitz != null && <span>Blitz {fideResult.blitz}</span>}
-          </div>
-        </div>
-      )}
+      <label className="field-label">Opponent lookup</label>
+      <FideLookup />
 
       {gameHeaders && (
         <>

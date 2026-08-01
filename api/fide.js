@@ -54,14 +54,20 @@ export default async function handler(req, res) {
 
   const federation = fedRaw ? fedRaw.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim() : null;
 
+  // FIDE always embeds a base64 image here, but players without a submitted photo get a
+  // tiny blank placeholder — filter those out by size rather than trying to detect it exactly.
+  const photoRaw = extract(html, /profile-top__photo"\s+src="(data:image\/[a-zA-Z]+;base64,[^"]+)"/);
+  const photo = photoRaw && photoRaw.length > 5000 ? photoRaw : null;
+
   res.status(200).json({
     fideId: id,
     name: name.trim(),
     federation: federation || null,
     birthYear: byear ? parseInt(byear, 10) : null,
-    title: titleFull ? TITLE_MAP[titleFull.trim()] || titleFull.trim() : null,
+    title: titleFull && titleFull.trim() !== "None" ? TITLE_MAP[titleFull.trim()] || titleFull.trim() : null,
     standard: std ? parseInt(std, 10) : null,
     rapid: rapid ? parseInt(rapid, 10) : null,
     blitz: blitz ? parseInt(blitz, 10) : null,
+    photo,
   });
 }

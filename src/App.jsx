@@ -100,6 +100,18 @@ export default function ChessPrepApp() {
         .info-card-name .muted { color: #8B93A1; font-weight: 400; font-size: 11.5px; }
         .info-card-sub { color: #8B93A1; font-size: 11.5px; margin-top: 3px; }
         .info-card-ratings { display:flex; gap: 10px; margin-top: 6px; font-size: 11.5px; color: #C9C3B4; font-family: "JetBrains Mono", monospace; }
+
+        .fide-candidates { margin-top: 6px; border: 1px solid #2A313C; border-radius: 8px; overflow: hidden; max-height: 220px; overflow-y: auto; }
+        .fide-candidate { display:flex; align-items:center; gap: 8px; padding: 7px 9px; cursor: pointer; border-bottom: 1px solid #2A313C; transition: background 0.12s ease; }
+        .fide-candidate:last-child { border-bottom: none; }
+        .fide-candidate:hover { background: #232935; }
+        .fide-candidate-flag { width: 18px; height: 13px; object-fit: cover; border-radius: 2px; flex-shrink: 0; }
+        .fide-candidate-name { font-size: 12.5px; }
+        .fide-candidate-meta { font-size: 11px; color: #8B93A1; margin-top: 1px; }
+        .fide-profile-top { display:flex; align-items:center; gap: 10px; }
+        .fide-avatar { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; background: #232935; flex-shrink: 0; }
+        .fide-avatar-placeholder { display:flex; align-items:center; justify-content:center; font-size: 18px; font-weight: 700; color: #8B93A1; }
+        .fide-avatar-sm { width: 26px; height: 26px; border-radius: 6px; font-size: 12px; }
         .analysis-board-side .move-list { max-height: 360px; overflow-y: auto; border: 1px solid #2A313C; border-radius: 8px; padding: 8px 10px; background: #14171C; margin-top: 6px; }
 
         .board-controls { display:flex; align-items:center; justify-content:center; gap: 6px; margin-top: 12px; }
@@ -149,7 +161,7 @@ export default function ChessPrepApp() {
         .saved-chip button:hover { color: #B25550; }
 
         .setup-strip { display:flex; align-items:center; justify-content: space-between; background: #1C2129; border-radius: 10px; padding: 14px 20px; margin-bottom: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.16); flex-wrap: wrap; gap: 12px; }
-        .setup-strip-info { display:flex; align-items:baseline; gap: 14px; flex-wrap: wrap; }
+        .setup-strip-info { display:flex; align-items:center; gap: 12px; flex-wrap: wrap; }
         .setup-strip-name { font-size: 15px; font-weight: 700; }
         .setup-strip-meta { color: #8B93A1; font-size: 12.5px; }
         .setup-strip-color { color: #8B93A1; font-size: 12.5px; }

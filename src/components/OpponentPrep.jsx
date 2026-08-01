@@ -5,10 +5,11 @@ import {
 } from "recharts";
 import {
   Save, RefreshCw, ChevronRight, ChevronDown,
-  Info, Swords, AlertTriangle, FolderOpen, X, ClipboardPaste, Search, Pencil, Upload
+  Info, Swords, AlertTriangle, FolderOpen, X, ClipboardPaste, Pencil, Upload
 } from "lucide-react";
 import { storage } from "../storage.js";
 import { ECO_NAMES } from "../data/ecoNames.js";
+import FideLookup from "./FideLookup.jsx";
 
 const TREE_MAX_PLY = 14;
 const TREE_MAX_CHILDREN = 5;
@@ -244,8 +245,10 @@ function TreeNode({ node, parentCount, depth }) {
 
 /* ============================== MAIN COMPONENT ============================== */
 
+const EMPTY_PROFILE = { name: "", country: "", age: "", title: "", ratingStd: "", ratingRapid: "", ratingBlitz: "", photo: null };
+
 export default function OpponentPrep({ onOpenGame }) {
-  const [profile, setProfile] = useState({ name: "", country: "", age: "", fideId: "", title: "", ratingStd: "", ratingRapid: "", ratingBlitz: "" });
+  const [profile, setProfile] = useState(EMPTY_PROFILE);
   const [myName, setMyName] = useState("");
   const [myColor, setMyColor] = useState("white");
   const [rawPgn, setRawPgn] = useState("");
@@ -261,8 +264,6 @@ export default function OpponentPrep({ onOpenGame }) {
 
   const [savedList, setSavedList] = useState([]);
   const [storageStatus, setStorageStatus] = useState("");
-  const [fideStatus, setFideStatus] = useState("");
-  const [fideLoading, setFideLoading] = useState(false);
 
   useEffect(() => { refreshSavedList(); }, []);
 
@@ -325,29 +326,18 @@ export default function OpponentPrep({ onOpenGame }) {
     } catch (e) { setStorageStatus("Delete failed."); }
   }
 
-  async function handleFideLookup() {
-    const id = profile.fideId.trim();
-    if (!id) { setFideStatus("Enter a FIDE ID first."); return; }
-    setFideLoading(true);
-    setFideStatus("Looking up…");
-    try {
-      const res = await fetch(`/api/fide?id=${encodeURIComponent(id)}`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Lookup failed");
-      setProfile((p) => ({
-        ...p,
-        name: data.name || p.name,
-        country: data.federation || p.country,
-        age: data.birthYear ? String(new Date().getFullYear() - data.birthYear) : p.age,
-        title: data.title || p.title,
-        ratingStd: data.standard != null ? String(data.standard) : p.ratingStd,
-        ratingRapid: data.rapid != null ? String(data.rapid) : p.ratingRapid,
-        ratingBlitz: data.blitz != null ? String(data.blitz) : p.ratingBlitz,
-      }));
-      setFideStatus("Filled from FIDE profile.");
-    } catch (e) {
-      setFideStatus(e.message === "Failed to fetch" ? "Lookup failed — check the ID and try again." : `Lookup failed: ${e.message}`);
-    } finally { setFideLoading(false); }
+  function handleFideResult(data) {
+    setProfile((p) => ({
+      ...p,
+      name: data.name || p.name,
+      country: data.federation || p.country,
+      age: data.birthYear ? String(new Date().getFullYear() - data.birthYear) : p.age,
+      title: data.title || p.title,
+      ratingStd: data.standard != null ? String(data.standard) : p.ratingStd,
+      ratingRapid: data.rapid != null ? String(data.rapid) : p.ratingRapid,
+      ratingBlitz: data.blitz != null ? String(data.blitz) : p.ratingBlitz,
+      photo: data.photo || p.photo,
+    }));
   }
 
   function doParse(pgnText, oppName, myNm) {
@@ -385,12 +375,11 @@ export default function OpponentPrep({ onOpenGame }) {
   }
 
   function handleClear() {
-    setProfile({ name: "", country: "", age: "", fideId: "", title: "", ratingStd: "", ratingRapid: "", ratingBlitz: "" });
+    setProfile(EMPTY_PROFILE);
     setMyName("");
     setRawPgn("");
     setGames(null);
     setParseWarning("");
-    setFideStatus("");
     setImportStatus("");
     setSetupCollapsed(false);
   }
@@ -497,6 +486,11 @@ export default function OpponentPrep({ onOpenGame }) {
       {setupCollapsed && games !== null ? (
         <div className="setup-strip">
           <div className="setup-strip-info">
+            {profile.photo ? (
+              <img className="fide-avatar fide-avatar-sm" src={profile.photo} alt={profile.name} />
+            ) : (
+              <div className="fide-avatar fide-avatar-sm fide-avatar-placeholder">{(profile.name || "?").charAt(0)}</div>
+            )}
             <span className="setup-strip-name">{profile.name || "Unnamed opponent"}</span>
             {(profile.title || profile.ratingStd || profile.country) && (
               <span className="setup-strip-meta">{[profile.title, profile.ratingStd, profile.country].filter(Boolean).join(" · ")}</span>
@@ -527,12 +521,8 @@ export default function OpponentPrep({ onOpenGame }) {
               </div>
             </div>
             <div className="setup-field">
-              <label className="field-label">FIDE ID</label>
-              <div className="fide-row">
-                <div><input type="text" value={profile.fideId} onChange={(e) => setProfile({ ...profile, fideId: e.target.value })} placeholder="e.g. 13300474" /></div>
-                <button className="btn ghost btn-icon" onClick={handleFideLookup} disabled={fideLoading} title="Fetch from FIDE"><Search size={14} /> {fideLoading ? "…" : "Fetch"}</button>
-              </div>
-              {fideStatus && <div className="status-line">{fideStatus}</div>}
+              <label className="field-label">FIDE lookup</label>
+              <FideLookup defaultQuery={profile.name} onResult={handleFideResult} />
             </div>
           </div>
 
