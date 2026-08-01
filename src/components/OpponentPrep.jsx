@@ -223,7 +223,7 @@ function TreeNode({ node, parentCount, depth, onOpenGame }) {
   const scorePct = node.count ? ((scoreTotal / node.count) * 100).toFixed(0) : "0";
   const moveNum = Math.ceil(node.ply / 2);
   const label = node.ply % 2 === 1 ? `${moveNum}.${node.san}` : `${moveNum}...${node.san}`;
-  const hasFewGames = node.ply > 0 && node.count > 0 && node.count <= 3;
+  const hasGames = node.ply > 0 && node.count > 0;
 
   return (
     <div className="tree-branch">
@@ -236,13 +236,13 @@ function TreeNode({ node, parentCount, depth, onOpenGame }) {
         <span className="tree-pct">{pct}%</span>
         <span className="tree-n">n={node.count}</span>
         <span className={`tree-score ${scorePct >= 55 ? "good" : scorePct <= 45 ? "bad" : ""}`}>{scorePct}%</span>
-        {hasFewGames && (
+        {hasGames && (
           <span className="tree-games-toggle" onClick={(e) => { e.stopPropagation(); setShowGames((s) => !s); }}>
             {showGames ? "hide" : "show"} game{node.count > 1 ? "s" : ""}
           </span>
         )}
       </div>
-      {showGames && hasFewGames && (
+      {showGames && hasGames && (
         <div className="tree-games-list" style={{ paddingLeft: depth * 18 + 21 }}>
           {node.games.map((g) => {
             const other = g.opponentColor === "white" ? g.headers.Black : g.headers.White;
